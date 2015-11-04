@@ -8,7 +8,7 @@ bool ActionsCenter::HuffnodeAlessthanB(Huffnode *a, Huffnode *b)
         return ((a->getFrequency()) < (b->getFrequency()));
 }
 
-void ActionsCenter::treeRecursiveBuildCodingHelper(QString &transversedString, QString &huffEncodedCharString, QHash<uchar, QBitArray> &hashOfEncodedChar, Huffnode *apontador, const Huffnode *raiz)
+void ActionsCenter::treeRecursiveBuildCodingHelper(QByteArray &transversedRepresentation, QString &huffCodePatternString, QVector<QString> &huffCodingPatternsRepository, Huffnode *apontador, const Huffnode *raiz)
 {
     //qDebug()<<"Start over:";
     if(apontador)
@@ -20,27 +20,32 @@ void ActionsCenter::treeRecursiveBuildCodingHelper(QString &transversedString, Q
             if(leafCharHolder == '*')
             {
                 //qDebug()<<"... Its content is default char *, so it will be marked";
-                transversedString.append("!*");
-                if(apontador == raiz) huffEncodedCharString.append('0');
-                hashOfEncodedChar.insert(leafCharHolder,turnStringInBitArray(huffEncodedCharString));
+                transversedRepresentation.append("!*");
+                if(apontador == raiz)
+                    huffCodePatternString.append('0');
+                huffCodingPatternsRepository[leafCharHolder] = huffCodePatternString;
                 return;
             }
 
             else if(leafCharHolder == '!')
             {
                 //qDebug()<<"... Its content is default char !, so it will be marked";
-                transversedString.append("!!");
-                if(apontador == raiz) huffEncodedCharString.append('0');
-                hashOfEncodedChar.insert(leafCharHolder,turnStringInBitArray(huffEncodedCharString));
+                transversedRepresentation.append("!!");
+                if(apontador == raiz)
+                    huffCodePatternString.append('0');
+                huffCodingPatternsRepository[leafCharHolder] = huffCodePatternString;
                 return;
             }
 
             else
             {
-                //qDebug()<<"... Its content has no any restriction, so it will not be modified";
-                transversedString.append(apontador->getCharacter());
-                if(apontador == raiz) huffEncodedCharString.append('0');
-                hashOfEncodedChar.insert(leafCharHolder,turnStringInBitArray(huffEncodedCharString));
+                /*qDebug()<<"... Its content has no any restriction, so it will not be modified"
+                       <<"\ncodification: " << huffEncodedCharString
+                      <<'\n';*/
+                transversedRepresentation.append(leafCharHolder);
+                if(apontador == raiz)
+                    huffCodePatternString.append('0');
+                huffCodingPatternsRepository[leafCharHolder] = huffCodePatternString;
                 return;
             }
         }
@@ -48,70 +53,74 @@ void ActionsCenter::treeRecursiveBuildCodingHelper(QString &transversedString, Q
         else
         {
             //qDebug()<<"Current node isn't a leaf. Default char * will be put in place of it into transversed string";
-            transversedString.append('*');
+            transversedRepresentation.append('*');
 
-            if(apontador->getLeft())
+            Huffnode *holderSubTree = apontador->getLeft(); //Pex tip cascate applied!
+            if(holderSubTree)
             {
                 //qDebug()<<"Left node, it isn't Nullpointer. Going by left...";
-                huffEncodedCharString.append('0');
-                treeRecursiveBuildCodingHelper(transversedString,huffEncodedCharString,hashOfEncodedChar,apontador->getLeft(),raiz);
-                huffEncodedCharString.chop(1);
+                huffCodePatternString.append('0');
+                treeRecursiveBuildCodingHelper(transversedRepresentation,huffCodePatternString,huffCodingPatternsRepository,holderSubTree,raiz);
+                huffCodePatternString.chop(1);
             }
 
-            if(apontador->getRight())
+            holderSubTree = apontador->getRight(); //Pex tip cascate applied!
+            if(holderSubTree)
             {
                 //qDebug()<<"Right node, it isn't Nullpointer. Going by right...";
-                huffEncodedCharString.append('1');
-                treeRecursiveBuildCodingHelper(transversedString,huffEncodedCharString,hashOfEncodedChar,apontador->getRight(),raiz);
-                huffEncodedCharString.chop(1);
+                huffCodePatternString.append('1');
+                treeRecursiveBuildCodingHelper(transversedRepresentation,huffCodePatternString,huffCodingPatternsRepository,holderSubTree,raiz);
+                huffCodePatternString.chop(1);
             }
         }
     }
 }
 
-void ActionsCenter::treeRecursiveRebuildNodeHandler(const QString &string, qint64 &currentCharIndex, Huffnode *&apontador)
+void ActionsCenter::treeRecursiveRebuildNodeHandler(QByteArray &transversedRepresentation, Huffnode *&apontador)
 {
     //qDebug()<< "Handle start over...";
 
-    if(currentCharIndex < string.size())
+    if(!transversedRepresentation.isEmpty())
     {
-        uchar holderCurrentCharHere = string.at(currentCharIndex).unicode();
-        if(holderCurrentCharHere == '!')
+        if((uchar(transversedRepresentation[0])) == 0x21)
         {
             //qDebug()<< "handler w !";
             apontador->setFrequency(1);
-            holderCurrentCharHere = string.at(currentCharIndex+1).unicode();
-            apontador->setCharacter(holderCurrentCharHere);
+            //holderCurrentCharHere = string.at(currentCharIndex+1).unicode();
+            apontador->setCharacter((uchar(transversedRepresentation[1])));
 
             //qDebug() << "make it inside huffnode class perfoms...";
             apontador->makeItLeaf();
 
-            currentCharIndex += 2;
+            //currentCharIndex += 2;
             //qDebug()<< "all done in handler w !";
+
+            transversedRepresentation.remove(0,2);
             return;
         }
-        else if(holderCurrentCharHere == '*')
+        else if((uchar (transversedRepresentation[0])) == 0x2A)
         {
             //qDebug()<< "handler w *";
             apontador->setFrequency(0);
-            apontador->setCharacter(holderCurrentCharHere);
+            apontador->setCharacter((uchar(transversedRepresentation[0])));
             apontador->setLeft((new Huffnode()));
             apontador->setRight((new Huffnode()));
-            ++currentCharIndex;
-            //qDebug()<< "all done in handler w *";
+
+            transversedRepresentation.remove(0,1);
             return;
         }
         else
         {
-            //qDebug()<< "handler any w" << qPrintable(holderCurrentCharHere);
+            qDebug()<< "handler any w" << qPrintable(((uchar (transversedRepresentation.at(0))) &0xFF));
             apontador->setFrequency(1);
-            apontador->setCharacter(holderCurrentCharHere);
+            apontador->setCharacter((uchar(transversedRepresentation[0])));
 
             //qDebug()<<"make it leaf inside huffnode class perfoms...";
             apontador->makeItLeaf();
 
-            ++currentCharIndex;
+            //++currentCharIndex;
             //qDebug()<< "all done in handler any w " << qPrintable(holderCurrentCharHere);
+            transversedRepresentation.remove(0,1);
             return;
         }
     }
@@ -119,33 +128,35 @@ void ActionsCenter::treeRecursiveRebuildNodeHandler(const QString &string, qint6
         qDebug()<<"end of string nothing to handled";
 }
 
-void ActionsCenter::treeRecursiveRebuildHelper(const QString &transversedString, qint64 &currentCharIndex, Huffnode *&apontador)
+void ActionsCenter::treeRecursiveRebuildHelper(QByteArray &transversedRepresentation, Huffnode *&apontador)
 {
     //qDebug()<<"Recursive Rebuild start over...";
     if(apontador)
     {
 
-        this->treeRecursiveRebuildNodeHandler(transversedString,currentCharIndex,apontador);
-        Huffnode *holderSubTree;
-        if(apontador->getLeft())
+        this->treeRecursiveRebuildNodeHandler(transversedRepresentation,apontador);
+
+        Huffnode *holderSubTree = apontador->getLeft(); //Pex tip cascate applied!
+        if(holderSubTree)
         {
             //qDebug()<<"going by subLeftTree...";
-            holderSubTree = apontador->getLeft();
-            this->treeRecursiveRebuildHelper(transversedString,currentCharIndex,holderSubTree);
+            this->treeRecursiveRebuildHelper(transversedRepresentation,holderSubTree);
         }
-        if(apontador->getRight())
+
+        holderSubTree = apontador->getRight(); //Pex tip cascate applied!
+        if(holderSubTree)
         {
             //qDebug()<<"going by subRightTree...";
-            holderSubTree = apontador->getRight();
-            this->treeRecursiveRebuildHelper(transversedString,currentCharIndex,holderSubTree);
+            this->treeRecursiveRebuildHelper(transversedRepresentation,holderSubTree);
         }
     }
 }
 
 QBitArray ActionsCenter::turnStringInBitArray(QString &string)
 {
-    QBitArray bitsFromString = QBitArray(string.size());
-    for(int i = 0; i<bitsFromString.size(); ++i)
+    qint64 nmStringSize = string.size(); //Pex tip cascate applied!
+    QBitArray bitsFromString = QBitArray(nmStringSize);
+    for(int i = 0; i<nmStringSize; ++i)
     {
         if(string.at(i) == '1')
         {
@@ -157,27 +168,11 @@ QBitArray ActionsCenter::turnStringInBitArray(QString &string)
 
 void ActionsCenter::completePseudoBinNumString(QString &string, int completeToThisSize)
 {
-    while(string.size() < completeToThisSize)
+    qint64 nmStringSize = string.size(); //Pex tip cascate applied!
+
+    for(qint64 i = nmStringSize; i<completeToThisSize; ++i)
     {
         string.prepend('0');
-    }
-}
-
-void ActionsCenter::treeRecursiveTransverse(QString &transversedString, Huffnode *apontador)
-{
-    if(apontador)
-    {
-        if(apontador->isLeaf())
-        {
-            transversedString.append(apontador->getCharacter());
-            return;
-        }
-        else
-        {
-            transversedString.append(apontador->getCharacter());
-            this->treeRecursiveTransverse(transversedString,apontador->getLeft());
-            this->treeRecursiveTransverse(transversedString,apontador->getRight());
-        }
     }
 }
 
@@ -195,20 +190,21 @@ void ActionsCenter::makeCount(QFile *userInFile, quint8 *arrayOfOccurrences)
 {
     Q_ASSERT_X(userInFile->open(QIODevice::ReadOnly), "ActionsCenter::makeCount", "D'oh! Are you sure that provider a valid filename. Aren't you?\nIf, yes: sorry it can not be opened, Try verify if it is in use for other program and try again later\nIf, no: Verify you type and try again!");
 
-    while(!userInFile->atEnd())
-    {
-        QByteArray lineFromFile = userInFile->read(1024);
-        for(int i=0; i<lineFromFile.size(); ++i)
-            arrayOfOccurrences[(uchar(lineFromFile[i]))]++;
-    }
-
+    QByteArray fileData = userInFile->readAll(); //Pex tip!
     userInFile->close();
+
+    qint64 readDataSize = fileData.size(); //Pex tip!
+    for(int i=0;  i<readDataSize; ++i)
+        arrayOfOccurrences[(uchar(fileData[i]))]++;
+
+    qDebug()<<"\t\t\t\t\tCounted!";
 }
 
 void ActionsCenter::treeGenNode(QList<Huffnode *> &listLikeNodeRepository, quint8 *arrayOfOccurrences)
 {
     Q_ASSERT_X(listLikeNodeRepository.empty(), "ActionsCenter::treeGenNode", "D'oh! It works better in a empty list, cause things could messed up into it. So avoiding your Headache, nothing was performed. *Except for 'is-empty-test' itself, of sure :D");
     Huffnode *auxNodeHolder = NULL;
+
     for(int i=0; i<256;++i)
     {
         if(arrayOfOccurrences[i])
@@ -229,53 +225,62 @@ void ActionsCenter::treeGenNode(QList<Huffnode *> &listLikeNodeRepository, quint
 
 void ActionsCenter::treeOrdering(QList<Huffnode *> &listLikeTree)
 {
-    while(((listLikeTree.size())>1))
+    qint64 nmListSize = listLikeTree.size(); //Pex tip cascate applied!
+    while(nmListSize > 1) //((listLikeTree.size())>1)
     {
         qSort(listLikeTree.begin(),listLikeTree.end(),this->HuffnodeAlessthanB);
         /*for(int i =0; i<listLikeTree.size(); ++i)
-            qDebug("--------------------------------------------\nAscii char: %c | Frequency: %d\n\n--------------------------------------------\n", listLikeTree.at(i)->getCharacter(), listLikeTree.at(i)->getFrequency());*/
+            qDebug("--------------------------------------------\nAscii char: %c | Frequency: %d\n\n--------------------------------------------\n", listLikeTree.at(i)->getCharacter(), listLikeTree.at(i)->getFrequency());/*a*/
 
         Huffnode *auxNodeHolder = new Huffnode(((listLikeTree.at(0)->getFrequency()) + (listLikeTree.at(1)->getFrequency())), '*',  listLikeTree.at(0), listLikeTree.at(1));
-        listLikeTree.removeFirst();
-        listLikeTree.removeFirst();
-        listLikeTree.prepend(auxNodeHolder);
+        listLikeTree.removeFirst(); // -1
+        listLikeTree.removeFirst(); // -1
+        listLikeTree.prepend(auxNodeHolder); // +1
+        --nmListSize; // nmlistsize = numlistSize -1 -1 +1 = numlistsize-1
         //qDebug("\n###############################\n");
     }
 
 }
 
-void ActionsCenter::treeCoding(QString *transverseTree, QHash<uchar, QBitArray> *hashTree, Huffnode *pointer, Huffnode *root)
+void ActionsCenter::treeCoding(QByteArray &transversedTree, QVector<QString> &huffCodingPatternsRepository, Huffnode *pointer, Huffnode *root)
 {
-    QString *auxCharCodingHolder = new QString();
-    this->treeRecursiveBuildCodingHelper(*transverseTree,*auxCharCodingHolder,*hashTree,pointer,root);
-    delete auxCharCodingHolder;
+    QString auxCharCodingHolder = "";
+    this->treeRecursiveBuildCodingHelper(transversedTree,auxCharCodingHolder,huffCodingPatternsRepository,pointer,root);
 }
 
-void ActionsCenter::treeBuilder(HuffTree *&builtTreeHolder, quint8 *arrayOfOccurrences)
+void ActionsCenter::treeBuilder(HuffTree *&holderBuiltTree, quint8 *arrayOfOccurrences)
 {
-    qDebug()<<"TreeBuilder - Tasks Done (1/4)";
-    QList<Huffnode*> *auxListLikeTreeHolder = new QList<Huffnode*>();
-    this->treeGenNode(*auxListLikeTreeHolder,arrayOfOccurrences);
-    qDebug()<<"TreeBuilder - Tasks Done (2/4)";
+    qDebug()<<"\t\t\t--- Task (1/3): Gen Leafs Nodes ---";
 
-    this->treeOrdering(*auxListLikeTreeHolder);
-    builtTreeHolder->setRoot(auxListLikeTreeHolder->at(0));
-    delete auxListLikeTreeHolder;
-    qDebug()<<"TreeBuilder - Tasks Done(3/4)";
+    QList<Huffnode*> auxListLikeTreeHolder = QList<Huffnode*>(); //removed new operator
+    this->treeGenNode(auxListLikeTreeHolder, arrayOfOccurrences);
+    qDebug()<<"\t\t\t\t\tGenered!\n\t\t\t-----------------------------------\n\n";
 
-    this->treeCoding(builtTreeHolder->getTransversedTreeString(),builtTreeHolder->getHash(),builtTreeHolder->getCurrent(),builtTreeHolder->getRoot());
-    qDebug()<<"TreeBuilder - Tasks Done(4/4)\nTree Built!";
+    qDebug()<<"\t\t\t--- Task (2/3): Ordering Nodes\t---";
+
+    this->treeOrdering(auxListLikeTreeHolder); //removed desref. pointer
+    holderBuiltTree->setRoot(auxListLikeTreeHolder.at(0)); //Edit
+    qDebug()<<"\t\t\t\t\tOrdered!\n\t\t\t-----------------------------------\n\n";
+
+    qDebug()<<"\t\t\t--- Task (3/3): Rep. & Coding\t---";
+
+    QByteArray preOrderedRepresentation = QByteArray(); //Edit
+    QVector<QString> codedPatternsRepository = QVector<QString>(256,""); //Edit size of it
+    this->treeCoding(preOrderedRepresentation, codedPatternsRepository, holderBuiltTree->getCurrent(), holderBuiltTree->getRoot()); //Edit
+    holderBuiltTree->setVector(codedPatternsRepository); //Edit
+    holderBuiltTree->setPreOrderTransversedRepresentation(preOrderedRepresentation); //Edit
+    qDebug()<<"\t\t\t\t\tCoded!\n\t\t\t-----------------------------------\n\n\t\t\t\tTree Built!";
 }
 
-int ActionsCenter::compCalcBinTrashSize(QHash<uchar, QBitArray> &hashedNodes, quint8 *arrayOfOccurrences)
+int ActionsCenter::compCalcBinTrashSize(QVector<QString> &huffCodingPatternsRepository, quint8 *arrayOfOccurrences)
 {
     quint64 preCalc = 0;
 
-    for(int i=0; i<256; ++i)
+    for(int i=0; i<256; ++i) //Edit size of it
     {
         if(arrayOfOccurrences[i])
         {
-            preCalc += (arrayOfOccurrences[i]) * (hashedNodes.value((uchar(i))).size());
+            preCalc += (arrayOfOccurrences[i]) * (huffCodingPatternsRepository[i].size());
         }
     }
 
@@ -291,24 +296,14 @@ quint64 ActionsCenter::compCalcTreeSize(QString &preOrderedTree)
     return preOrderedTree.size();
 }
 
-int ActionsCenter::compCalcFilenameSize(QFile *userInFile)
+QByteArray ActionsCenter::compCalcFilenameSize(QFile *&userInFile)
 {
-    Q_ASSERT_X(userInFile->open(QIODevice::ReadOnly), "ActionsCenter::compCalcFilenameSize", "D'Oh! I can't open the input file. For security nothing will be done. Dhuffman is dead (x.X)");
-    int computedFileNameSize = (userInFile->fileName().size()-1);
-    while((userInFile->fileName().at(computedFileNameSize) != '/') & (userInFile->fileName().at(computedFileNameSize) != '/'))
-    {
-        --computedFileNameSize;
-    }
-
-    computedFileNameSize = ((userInFile->fileName().size() - computedFileNameSize)-1);
-    qDebug()<<"Size of file in compCalcFileSize:    "<<QString::number(computedFileNameSize);
-    userInFile->close();
-    return computedFileNameSize;
+    return QFileInfo(*userInFile).fileName().toUtf8();
 }
 
-QFile* ActionsCenter::compGenHeader(QBitArray binTrashSize, QBitArray binTreeSize, QBitArray binFilenameSize)
+QFile* ActionsCenter::compGenHeader(QString outCustomName, QString binTrashSize, QString binTreeSize, QString binFilenameSize, const QByteArray &originalName, const QByteArray &treeRep)
 {
-    QFile *headerTmp = new QFile("header.tmp");
+    QFile *headerTmp = new QFile(outCustomName);
     BitArray *helper = new BitArray(24);
 
     Q_ASSERT_X(headerTmp->open(QIODevice::WriteOnly), "ActionsCenter::compGenHeader", "Temp header can't be create. Not know how to handle it");
@@ -317,74 +312,90 @@ QFile* ActionsCenter::compGenHeader(QBitArray binTrashSize, QBitArray binTreeSiz
     helper->addBitArray(binTreeSize);
     helper->addBitArray(binFilenameSize);
 
-    QList<QBitArray> listOfChunks = QList<QBitArray>();
-    helper->makeItListOfChunks(listOfChunks);
+    headerTmp->write(helper->turnChunkOfBitsToByte());
 
-    for(int i = 0; i<listOfChunks.size(); ++i)
-        headerTmp->write(helper->turnChunkOfBitsToByte(listOfChunks.at(i)),1);
+    headerTmp->write(originalName);
+    headerTmp->write(treeRep);
 
-    delete helper;
-
+    helper->~BitArray();
     headerTmp->close();
     return headerTmp;
 }
 
-QFile* ActionsCenter::compGenHuffFile(QFile *userInFile, QHash<uchar, QBitArray> &hashedNodes, int TrashSize)
+void ActionsCenter::compGenHuffFile(QFile *userInFile, QFile* outHuffFile, QVector<QString> &huffCodingPatternsRepository, int trashSize)
 {
-    QFile * HuffmanTmp = new QFile("huff.tmp");
+    //QFile * HuffmanTmp = new QFile("huff.tmp");
     bool perfectFileFlag = true;
-    Q_ASSERT_X(HuffmanTmp->open(QIODevice::WriteOnly), "ActionsCenter::compGenHuffFile", "Temp out file can't be created. Not know how to handle it");
+
+    Q_ASSERT_X(outHuffFile->open(QIODevice::WriteOnly | QIODevice::Append), "ActionsCenter::compGenHuffFile", "Temp out file can't be created. Not know how to handle it");
     Q_ASSERT_X(userInFile->open(QIODevice::ReadOnly), "ActionsCenter::compGenHuffFile", "I can't open the provided Input File, verify if its a valid filename and try again from the top, sorry it hard to say. Dhuffman is gets fuzzy (o.O)");
 
-    if(TrashSize) perfectFileFlag = false;
+    if(trashSize)
+        perfectFileFlag = false;
 
-    BitArray *binDataHelper = new BitArray(1024*8);
+    BitArray *binDataHelper = new BitArray(1024*9);
     QByteArray avaliableDataInByte;
 
     qDebug()<<"genHuff";
     while(!userInFile->atEnd())
     {
         qDebug()<<"Reading...";
-        QByteArray lineOfData = userInFile->readLine(1024);
-        for(int i = 0; i<lineOfData.size(); i++)
+        QByteArray lineOfData = userInFile->read(1024);
+        qint64 realDataSize = lineOfData.size(); //Pex tip cascate applied
+
+        for(int i = 0; i<realDataSize; i++)
         {
-            qDebug()<<"Calling addbits na gen huff";
-            binDataHelper->addBitArray(hashedNodes.value((uchar(lineOfData[i]))));
-            qDebug() << "bitarray before write job: " << binDataHelper->getReadableBitArray();
-
-            while(binDataHelper->theresOneChunkAvaliable())
+            if((binDataHelper->getPseudoEndIndex()+1) >= binDataHelper->getMaximumSize())
             {
-                avaliableDataInByte = binDataHelper->turnChunkOfBitsToByte(binDataHelper->breakOneChunk());
+                qDebug() << "avoid loss data...";
+                avaliableDataInByte = binDataHelper->turnChunkOfBitsToByte();
+                //qDebug() << "available data to write down...  " << avaliableDataInByte.toHex();
+                //qDebug() << "readable bitarray...   " << binDataHelper->getReadableBitArray();
 
-                qDebug()<<"theres a chunk of data avalaible to be write down. It's... "<< binDataHelper->getReadableBitArray();
-                if(!avaliableDataInByte.isEmpty())
-                    HuffmanTmp->write(avaliableDataInByte.data_ptr()->data(),1);
-                else
+                if(avaliableDataInByte.isEmpty())
                 {
-                    qDebug()<<"error empty byteArray returned";
+                    qDebug() << "error empty byteArray returned";
                     break;
                 }
+                else
+                    outHuffFile->write(avaliableDataInByte, avaliableDataInByte.size());
             }
+
+            binDataHelper->addBitArray(huffCodingPatternsRepository.at((uchar(lineOfData[i]))));
         }
+
+        avaliableDataInByte = binDataHelper->turnChunkOfBitsToByte();
+        /*qDebug()<< "available data to write down in Byte array...   "<< avaliableDataInByte.toHex()
+                << "remain data:    " << binDataHelper->getReadableBitArray();*/
+
+        if(avaliableDataInByte.isEmpty())
+        {
+            qDebug() << "error empty byteArray returned";
+            break;
+        }
+        else
+            outHuffFile->write(avaliableDataInByte, avaliableDataInByte.size());
     }
 
     qDebug()<<"File data bitarray na genHufffile:   "<<binDataHelper->getReadableBitArray();
-    qDebug()<<"Trash dentro da GenHuff: "<<QString::number(TrashSize);
+    qDebug()<<"Trash dentro da GenHuff: "<<QString::number(trashSize);
 
     if(!perfectFileFlag)
     {
-        binDataHelper->setPseudoEndIndex(binDataHelper->getPseudoEndIndex()+TrashSize);
-        avaliableDataInByte = binDataHelper->turnChunkOfBitsToByte(binDataHelper->breakOneChunk());
-
+        //binDataHelper->setPseudoEndIndex(binDataHelper->getPseudoEndIndex()+TrashSize);
+        binDataHelper->completeMe(trashSize);
         qDebug()<<"After complete:  "<<binDataHelper->getReadableBitArray();
-        HuffmanTmp->write(avaliableDataInByte.data_ptr()->data(),1);
+        avaliableDataInByte = binDataHelper->turnChunkOfBitsToByte(); //binDataHelper->turnChunkOfBitsToByte(binDataHelper->breakOneChunk());
+        qDebug() << "Available data in byte:    " << avaliableDataInByte.toHex();
+        outHuffFile->write(avaliableDataInByte,avaliableDataInByte.size());
     }
 
     qDebug()<<"After huffed:    "<<binDataHelper->getReadableBitArray();
 
+    binDataHelper->~BitArray();
     userInFile->close();
-    HuffmanTmp->close();
-    return HuffmanTmp;
+    outHuffFile->close();
+    return;
 }
 
 QFile *ActionsCenter::compUniteFile(QFile *head, QFile *huffFile)
@@ -394,7 +405,7 @@ QFile *ActionsCenter::compUniteFile(QFile *head, QFile *huffFile)
 
     while(!huffFile->atEnd())
     {
-        head->write(huffFile->readLine(1024));
+        head->write(huffFile->read(1024));
     }
 
     huffFile->close();
@@ -407,102 +418,61 @@ void ActionsCenter::compCompress(const QString &filePath, const QString customOu
     QFile *inputedFile = new QFile(filePath);
     quint8 countedBinData[256] = {0};
 
-    qDebug()<<"Compress (1/3) - Counting (1)";
+    qDebug("%s\n\t\t%s","Compress (1/3)","--- \t\tCounting Jobs (1/1)\t\t ---");
+
     this->makeCount(inputedFile,countedBinData);
-    qDebug()<<"Counted!\nCompress - Done (1/3)";
+    qDebug()<<"\t\t----------------------------------------------------\n\nCompress (1/3): Done!\n";
 
     HuffTree *fileTree = new HuffTree();
 
-    qDebug()<<"Compress (2/3) - Tree Jobs (4)";
+    qDebug("%s\n\t\t%s", "Compress (2/3)", "--- \t\tTree Jobs (3)\t\t ---");
+
     this->treeBuilder(fileTree,countedBinData);
-    qDebug()<<"Compress - Done (2/3)";
+    qDebug()<<"\t\t--------------------------------------------\n\nCompress (2/3): Done!\n";
+    qDebug("%s\n\t\t%s", "Compress (3/3)", "--- \t\t\tHuff Jobs (5)\t\t\t ---");
 
-    qDebug()<<"Compress (3/3) - Compress Jobs (6)";
-    int bitsTrash = this->compCalcBinTrashSize(*fileTree->getHash(), countedBinData);
-    QString TrashBits = QString::number((bitsTrash),2);
-    completePseudoBinNumString(TrashBits,3);
-    qDebug()<<"After Completing job, Trash string:   "<<TrashBits<<"\nCompress Jobs - Done (1/6)";
+    QVector<QString> codedPatternsRepository = fileTree->getVector();
+    int bitsTrash = this->compCalcBinTrashSize(codedPatternsRepository, countedBinData);
+    QString trashBits = QString::number((bitsTrash),2);
+    completePseudoBinNumString(trashBits,3);
+    qDebug()<<"\n\t\t\t---\tTask (1/5): Get Trash Info\t\t---\n\t\t\t\tTrash Binary string:\n\t\t\t\t\t"<< qPrintable(trashBits)
+           <<"\n\n\t\t\t-------------------------------------------\n";
 
-    QString TreeSize = QString::number(compCalcTreeSize(*fileTree->getTransversedTreeString()),2);
-    completePseudoBinNumString(TreeSize,13);
-    qDebug()<<"After Completing job, Tree String:   "<<TreeSize<<"\nCompress Jobs - Done (2/6)";
+    QString treeSize = QString::number((fileTree->getTreeSize()),2);
+    this->completePseudoBinNumString(treeSize,13);
+    qDebug()<< "\n\t\t\t---\tTask (2/5): Get Tree Info\t\t---\n\t\t\t\tTree Binary string:\n\t\t\t\t\t"<< qPrintable(treeSize)
+           <<"\n\n\t\t\t-------------------------------------------\n";
 
-    qint64 FileSize = compCalcFilenameSize(inputedFile);
-    QString FileNSize = QString::number(FileSize,2);
-    completePseudoBinNumString(FileNSize,8);
-    qDebug()<<"After completing job, File name String:  "<<FileNSize;
+    QByteArray fileNameString = this->compCalcFilenameSize(inputedFile);
+    qDebug()<< "\t\t\tRetrived file name:\t"<< fileNameString;
 
-    qDebug()<<"Compress Jobs - Done (3/6)";
+    QString fileNSize = QString::number(fileNameString.size(),2);
+    this->completePseudoBinNumString(fileNSize,8);
+    qDebug()<< "\n\t\t\t---\tTask (3/5): Get Filename Info\t---\n\t\t\t\tFile name Binary string:\n\t\t\t\t\t"<< fileNSize
+            << "\n\t\t\t-------------------------------------------\n" <<"\n\t\t\t--- Task (4/5) OutFileName Handler\t---\n";
 
-    QFile *huffOutFilelikeHeader = compGenHeader(turnStringInBitArray(TrashBits),turnStringInBitArray(TreeSize),turnStringInBitArray(FileNSize));
+    QFile *huffOutFile = compGenHeader(customOutname, trashBits, treeSize, fileNSize, fileNameString, fileTree->getTransversedTreeRepresentation());
+    qDebug("\n\t\t\t%s\n","-------------------------------------------");
 
-    Q_ASSERT_X(huffOutFilelikeHeader->open(QIODevice::Append), "ActionsCenter::compCompress", "D'Oh! I can't open GenHeader");
-    Q_ASSERT_X(inputedFile->open(QIODevice::ReadOnly), "ActionsCenter::compCompress", "D'Oh! I can't open inputedFile again. That's no make any sense, Dhuffman is Dead (x.X)");
+    qDebug("\n\t\t\t%s\n", "--- Task (5/5): Apply Huff on file\t---");
 
-    qDebug()<<"File size number:     "<<QString::number(FileSize);
-    QString OriginalFilenameHolder = "";
-
-    for(int j = (inputedFile->fileName().size()) - FileSize; j<inputedFile->fileName().size(); ++j)
-    {
-        OriginalFilenameHolder += inputedFile->fileName().at(j);
-    }
-
-    qDebug()<<"Retrived file name:  "<<OriginalFilenameHolder;
-
-    inputedFile->close();
-
-    qDebug()<<"Filename after obtain file:   "<<FileNSize;
-
-    huffOutFilelikeHeader->write(OriginalFilenameHolder.toUtf8());
-    huffOutFilelikeHeader->write(fileTree->getTransversedTreeString()->toUtf8());
-
-    huffOutFilelikeHeader->close();
-
-    qDebug()<<"Compress Jobs - Done (4/6)";
-
-    huffOutFilelikeHeader = compUniteFile(huffOutFilelikeHeader,compGenHuffFile(inputedFile,*fileTree->getHash(),bitsTrash));
-
-    qDebug()<<"Compress Jobs - Done (5/6)";
-
-    Q_ASSERT_X(huffOutFilelikeHeader->open(QIODevice::ReadWrite), "ActionsCenter::compCompress", "D'Oh! I can't open gen out File");
-    Q_ASSERT_X(inputedFile->open(QIODevice::ReadOnly), "ActionsCenter::comCompress", "D'Oh! I can't open input file again, something change. Is it still there? isn't it? dhuffman is dead (x.X)");
-
-    FileNSize = inputedFile->fileName();
-    FileNSize.chop(FileSize);
-
-    FileNSize.append(customOutname+".huff");
-    inputedFile->close();
-
-    qDebug()<<"Custom out file name: "<<FileNSize;
-    huffOutFilelikeHeader->close();
-    huffOutFilelikeHeader->setFileName(FileNSize);
-    huffOutFilelikeHeader->close();
-    qDebug()<<"Compress Jobs - Done (6/6)";
-
-    qDebug()<<"Compress - Done (3/3)";
+    compGenHuffFile(inputedFile, huffOutFile, codedPatternsRepository, bitsTrash);
+    qDebug()<<"\n\t\t\t\t\t\tHuffed!\n\t\t\t----------------------------------------------------\n\nCompress (3/3): Done!";
 }
 
-Huffnode *ActionsCenter::treeRebuildFromString(const QString &PreOrderedTransversedTree)
+Huffnode *ActionsCenter::treeRebuildFromString(QByteArray &preOrderedTransversedTree)
 {
-    Q_ASSERT_X(!PreOrderedTransversedTree.isEmpty(), "ActionsCenter::treeRebuildFromString", "D'Oh! I can't handle with a empty string. Did you has been already created it tree, dind't you?");
+    Q_ASSERT_X(!preOrderedTransversedTree.isEmpty(), "ActionsCenter::treeRebuildFromString", "D'Oh! I can't handle with a empty string. Did you has been already created it tree, dind't you?");
 
-    Huffnode* pseudoRoot = NULL;
-    qint64 charIndex = 0;
-
+    Huffnode* pseudoRoot = new Huffnode();
     qDebug()<<"Ok Rebuild will start";
-
-    pseudoRoot = new Huffnode();
-    pseudoRoot->setLeft((new Huffnode));
-    pseudoRoot->setRight((new Huffnode));
-
-    this->treeRecursiveRebuildHelper(PreOrderedTransversedTree,charIndex,pseudoRoot);
-
+    this->treeRecursiveRebuildHelper(preOrderedTransversedTree,pseudoRoot);
     qDebug()<<"All done in RebuildFromString";
 
     return pseudoRoot;
 }
 
-bool ActionsCenter::decompReadingHeader(QFile *userInFile, QString &preOrderedTransversedTree, QString &fileNameString, qint8 &trashNumSize, qint64 treeNumSize, qint64 fileNumSize)
+bool ActionsCenter::decompReadingHeader(QFile *userInFile, QByteArray &preOrderedTransversedTree, QByteArray &fileNameString, qint8 &trashNumSize, qint64 &treeNumSize, qint64 &fileNumSize)
 {
     Q_ASSERT_X(userInFile->open(QIODevice::ReadOnly), "ActionsCenter::decompReadingHeader", "File can't be opened");
 
@@ -518,11 +488,11 @@ bool ActionsCenter::decompReadingHeader(QFile *userInFile, QString &preOrderedTr
         headerHolder = helper->turnChunkOfBitsToByte(helper->getBitArray());
 
         qDebug() << "byte array:    " << headerHolder.toHex();
-        trashNumSize = (((uchar(headerHolder[0])) &0x70)>>5);
+        trashNumSize = (((uchar(headerHolder[0])) &0xE0)>>5);
         qDebug() << "Trash size in int: " << QString::number(trashNumSize);
 
         qDebug() << "byte array:    " << headerHolder.toHex();
-        treeNumSize = ((uchar(headerHolder[0])) &0x1F) | ((uchar(headerHolder[1])) &0xFF);
+        treeNumSize = (((quint16(headerHolder[0])) &0x1F)<<8) | ((quint16(headerHolder[1])) &0xFF);
         qDebug() << "tree size in int:  " << QString::number(treeNumSize);
 
         qDebug() << "byte array:    " << headerHolder.toHex();
@@ -537,6 +507,7 @@ bool ActionsCenter::decompReadingHeader(QFile *userInFile, QString &preOrderedTr
             qDebug() << "there's no enough data to retrieve from it's header...\n file availavle bytes: "
                      << QString::number(availabledatasize) << "\n pseudo available bytes needed:    "
                      << QString::number(pseudoavailabledatasizeneeded);
+            userInFile->close();
             return false;
         }
 
@@ -547,53 +518,239 @@ bool ActionsCenter::decompReadingHeader(QFile *userInFile, QString &preOrderedTr
         qDebug() << "retrived file name:    " << fileNameString;
 
         headerHolder.clear();
-        headerHolder = userInFile->readLine(treeNumSize+1);
+        headerHolder = userInFile->read(treeNumSize);
         qDebug() << "byte array: " << headerHolder.toHex();
+        qDebug() << "byte array size:   " << QString::number(headerHolder.size());
         preOrderedTransversedTree = headerHolder;
-        qDebug() << "retrieved tree:    " << preOrderedTransversedTree;
-
+        qDebug() << "retrieved tree:    " << preOrderedTransversedTree.toHex();
+        userInFile->close();
         return true;
     }
     else
     {
         qDebug()<<"There's no data enough for retrieve header. Not know how to handle, Nothing to do with it. File is conrupted";
+        userInFile->close();
         return false;
     }
 }
 
-QFile* ActionsCenter::decompRetrieveOriginalData(QFile *userCompFile, HuffTree *&tree)
+bool ActionsCenter::decompRetrieveOriginalData(QByteArray customOutName, QFile *userCompFile, HuffTree *&tree, const qint64 treeSize, const qint64 filenameSize, const qint8 trash)
 {
-    QFile *retrievedFile = new QFile("rtrvr.tmp");
+    QFile *retrievedFile = new QFile(customOutName);
 
-    Q_ASSERT_X(retrievedFile->open(QIODevice::WriteOnly),"ActionsCenter::desRetriveOriginalData", "Sorry, I can't open or even create a file to retrive your data. Check with your adm if you had rights for use this directory, and so on try again later. Huffman dead (x_X)");
-    Q_ASSERT_X(userCompFile->open(QIODevice::ReadOnly),"ActionsCenter::desRetriveOriginalData","Sorry, I can't open your provided huffman file. Check you typing and try again later, Huffman is dead (x_X)");
+    Q_ASSERT_X(retrievedFile->open(QIODevice::WriteOnly),"ActionsCenter::decompRetriveOriginalData", "Sorry, I can't open or even create a file to retrive your data. Check with your adm if you had rights for use this directory, and so on try again later. Huffman dead (x_X)");
+    Q_ASSERT_X(userCompFile->open(QIODevice::ReadOnly),"ActionsCenter::decompRetriveOriginalData","Sorry, I can't open your provided huffman file. Check you typing and try again later, Huffman is dead (x_X)");
 
-    BitArray *helper = new BitArray(1024*8);
-    bool flag = true;
+    BitArray *helper = new BitArray(1024*9);
+    qDebug() << "pseudo pos:    " << qPrintable(QString::number(treeSize+filenameSize+4))
+             << "available bytes:   " << qPrintable(QString::number(userCompFile->bytesAvailable()));
 
-    tree->transverseToPreOrderStringGen();
-    qDebug()<< "tree: "<< *tree->getTransversedTreeString();
+    bool flag = userCompFile->seek(3+treeSize+filenameSize);
+    qDebug() << "flag:  " << flag;
+
+    tree->transverseToPreOrderRepresentationGen();
+    qDebug()<< "tree: "<< *tree->getTransversedTreeRepresentation();
+
     while(!userCompFile->atEnd() & flag)
     {
-        QByteArray holderData = userCompFile->readLine(1024);
+        QByteArray holderData = userCompFile->read(1024);
+        //qDebug() << "byteArray: " << holderData.toHex();
         helper->addReversedBitArray(helper->turnByteToChunkOfBits(holderData));
-        helper->pseudoRemoveFromEnd(2);
-        qDebug()<<"retrieved bits" << helper->getReadableBitArray();
-        //qint64 holder = helper->pseudoSize();
-        while(!helper->pseudoEmpty() & flag)
+        //qDebug()<<"retrieved bits" << helper->getReadableBitArray();
+        qDebug()<<"trash size:  " << QString::number(trash) << "\n pseudosize:  " << QString::number(helper->pseudoSize());
+
+        for(qint64 i = helper->pseudoSize(); ((i>trash) & (!helper->pseudoEmpty())) & flag; --i)
         {
             flag = tree->retriveDataByTransversed(helper->pseudoBeginValue(),retrievedFile);
-
+            qDebug() << "flag:  " << flag;
             if(flag) helper->pseudoFF();
             else
             {
-                qDebug() << "Theres something wrong, may this tree wasn't build from it file?";
-                helper->setPseudoBeginIndex(0);
+                qDebug() << "There's something wrong, may this tree wasn't built from it file?";
+                helper->pseudoRW();
                 break;
             }
+        }
+
+        if(helper->pseudoEmpty())
+        {
+            qDebug() << "Should no enter here, except if was trash size is zero";
+            helper->erase();
+        }
+        else
+        {
+            qDebug() << "pseudo size:   " << helper->pseudoSize()
+                    << "readable bitarray should be "+QString::number(trash)+": "<< helper->getReadableBitArray();
+            helper->pseudoErase();
         }
     }
 
     retrievedFile->close();
-    return retrievedFile;
+    return flag;
+}
+
+int ActionsCenter::decompDecompress(const QString &filepath)
+{
+    bool status = false;
+
+    HuffTree *tree = new HuffTree();
+    QFile *huffedFile = new QFile(filepath);
+    QByteArray stringTree = "";
+    QByteArray stringFile = "";
+    qint8 numTrash = -1;
+    qint64 numFilename = -1;
+    qint64 numTreeSize = -1;
+
+    qDebug() << "Descompress jobs - (1/3)";
+    status = decompReadingHeader(huffedFile,stringTree,stringFile,numTrash,numTreeSize,numFilename);
+
+    if(status)
+        qDebug() << "Descompress jobs - Done (1/3)";
+    else
+    {
+        qDebug() << "Error in jobs (1/3) - Error in read file's header\nHuffman is Dead(x.X)";
+        return 0xD0;
+    }
+
+    QString outHandler = QDir::currentPath()+'/'+stringFile;
+    status = QFileInfo::exists(outHandler);
+
+    if(status)
+    {
+        qDebug()<< "\n\nOut huff file:\n\t\t\t" << qPrintable(outHandler)
+                << "\nD'Oh! output File already exist.\nSorry, but Huffman was designed to not allowed overwritten files.\nCheck the output info above and solves it conflicts by your own and give it another try!\nHuffman is dead (x.X)\n";
+        return 0xD1;
+    }
+    else
+    {
+        qDebug() << "Descompress jobs - (2/3)";
+        tree->setRoot(treeRebuildFromString(stringTree));
+        tree->transverseToPreOrderRepresentationGen();
+
+        if(stringTree.isEmpty())
+        {
+            status = true;
+            qDebug() << "Descompress jobs - Done (2/3)";
+        }
+
+        else
+        {
+            qDebug() << "Error in jobs (2/3) - Error in rebuild tree\n"
+                     << "remain representation hints (it should be zero): " << QString::number(stringTree.size()) << ". That's means some nodes are not placed into the tree, something fails so bad! Not know how to handle it\n Huffman is Dead(x.X)\n\n";
+            return 0xD2;
+        }
+
+        if(status)
+        {
+            status = decompRetrieveOriginalData(stringFile, huffedFile, tree, numTreeSize, numFilename, numTrash);
+            if(status)
+                qDebug() << "Descompress jobs - Done (3/3)";
+            else
+            {
+                qDebug() << "Error in jobs (3/3) - Error in retrieved original data\n"
+                         << "Sorry, Not know how to handle with it.\nHuffman is Dead (x.X)\n";
+                return 0xD3;
+            }
+        }
+    }
+
+    return 0x00;
+}
+
+QPair<bool, QString> ActionsCenter::compIOPaths(const QString &inPath, const QString &outPath)
+{
+    QPair<bool, QString> callCompWiz;
+    callCompWiz.first = false;
+    QFileInfo inputedFile = QFileInfo(inPath);
+    callCompWiz.first = inputedFile.exists();
+
+    if(callCompWiz.first)
+    {
+        QString outName = "";
+
+        if(outPath.isEmpty())
+        {
+            qDebug()<< "Huffman says: Empty String to out huffed file\n";
+
+            outName = inputedFile.canonicalFilePath();
+            qDebug()<<"User file's input path:\n\t\t\t"<< qPrintable(outName) <<"\n\n";
+
+            qint64 extensionRemove = outName.lastIndexOf('.');
+            if(extensionRemove > 0)
+            {
+                outName.chop((outName.size()) - extensionRemove);
+            }
+
+            outName += ".huff";
+            qDebug()<< "Huffman gen output path:\n\t\t\t" << qPrintable(outName) <<"\n\n";
+
+            QFileInfo huffOutFile = QFile(outName);
+            callCompWiz.first = !huffOutFile.exists();
+            if(callCompWiz.first)
+                callCompWiz.second = outName;
+            else
+                qDebug() << "D'Oh! Output File already exist.\nSorry, but Huffman, It was designed to not allowed overwritten files.\nDid you know you can typing a out name, didn't you?\nNow you can check the in/output information above and give it another try after solves this conflicts by your own!\nHuffman is dead (x.X)\n";
+        }
+
+        else
+        {
+            QFileInfo huffOutFile = QFileInfo(outPath);
+            callCompWiz.first = !huffOutFile.exists();
+            if(callCompWiz.first)
+                callCompWiz.second = outPath;
+            else
+                qDebug() << "D'Oh! output File already exist.\nSorry, but Huffman was designed to not allowed overwritten existent files.\nCheck your typing and give it another try!\nHuffman is dead (x.X)";
+        }
+    }
+    else
+        qDebug() << "System says: Input file doesn't exist.\nCheck your typing and try again. Huffman is dead (x.X)\n";
+
+    return callCompWiz;
+}
+
+bool ActionsCenter::decompIOPaths(const QString &inPath, const QString &outDirPath)
+{
+    bool callDecompWiz;
+    callDecompWiz = false;
+    QFileInfo inputedFile = QFileInfo(inPath);
+    callDecompWiz = inputedFile.exists();
+
+    if(callDecompWiz)
+    {
+        QString outDir = "";
+
+        if(outDirPath.isEmpty())
+        {
+            qDebug()<< "Huffman says: Empty String to outDir original file\n";
+            outDir = inputedFile.canonicalPath();
+            qDebug()<< "User file's input path:\n\t\t\t"<< qPrintable(inPath);
+            qDebug()<< "Huffman Dir output path:\n\t\t\t" << qPrintable(outDir);
+
+            callDecompWiz = QDir::setCurrent(outDir);
+            if(callDecompWiz)
+                qDebug() << "Ok! Huffman current directory is... " << qPrintable(outDir) <<"\n\t\t\t ...your dehuffed file will be there!\n";
+            else
+                qDebug() << "D'Oh! current working directory was not changed.\nCheck your typing and try again, if it's not a typo verify with you admin if you have rights to use it and give it another try!\nHuffman is Dead (x.X)";
+        }
+
+        else
+        {
+            qDebug() << "Huffman says: non-empty outDir";
+            QDir huffOutDir = QDir(outDirPath);
+            callDecompWiz = huffOutDir.exists();
+
+            if(callDecompWiz)
+            {
+                callDecompWiz = QDir::setCurrent(outDirPath);
+                if(callDecompWiz)
+                    qDebug() << "Ok! Huffman current directory is... " << qPrintable(outDirPath) <<"\n\t\t\t ...your dehuffed file will be there!\n";
+            }
+            else
+                qDebug() << "D'Oh! output directory not exists.\nSorry, but Huffman was designed to not create Directories\nTry create a directory using O.S. file's manager and give it another try!";
+        }
+    }
+    else
+        qDebug() << "System says: Input file doesn't exist.\nCheck your typing and try again. Huffman is dead (x.X)\n";
+
+    return callDecompWiz;
 }

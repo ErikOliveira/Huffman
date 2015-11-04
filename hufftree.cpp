@@ -1,7 +1,7 @@
 #include "hufftree.h"
 
 
-void HuffTree::recursiveTransverseStringGen(QString &preOrderTreeLikeStringHere, Huffnode *apontador)
+void HuffTree::recursiveTransverseRepresentationGen(QByteArray &preOrderTreeRepresentationHere, Huffnode *apontador)
 {
     //qDebug()<<"Start over:";
     if(apontador)
@@ -14,21 +14,21 @@ void HuffTree::recursiveTransverseStringGen(QString &preOrderTreeLikeStringHere,
             if(leafCharHolder == '*')
             {
                 //qDebug()<<"... Its content is default char *, so it will be marked";
-                preOrderTreeLikeStringHere.append("!*");
+                preOrderTreeRepresentationHere.append("!*");
                 return;
             }
 
             else if(leafCharHolder == '!')
             {
                 //qDebug()<<"... Its content is default char !, so it will be marked";
-                preOrderTreeLikeStringHere.append("!!");
+                preOrderTreeRepresentationHere.append("!!");
                 return;
             }
 
             else
             {
                 //qDebug()<<"... Its content has no any restriction, so it will not be modified";
-                preOrderTreeLikeStringHere.append(apontador->getCharacter());
+                preOrderTreeRepresentationHere.append(leafCharHolder);
                 return;
             }
         }
@@ -36,18 +36,20 @@ void HuffTree::recursiveTransverseStringGen(QString &preOrderTreeLikeStringHere,
         else
         {
             //qDebug()<<"Current node isn't a leaf. Default char * will be put in place of it into transversed string";
-            preOrderTreeLikeStringHere.append('*');
+            preOrderTreeRepresentationHere.append('*');
 
-            if(apontador->getLeft())
+            Huffnode *holderSubTree = apontador->getLeft(); //Pex tip cascate applied!
+            if(holderSubTree)
             {
                 //qDebug()<<"Left node, it isn't Nullpointer. Going by left...";
-                recursiveTransverseStringGen(preOrderTreeLikeStringHere,apontador->getLeft());
+                recursiveTransverseRepresentationGen(preOrderTreeRepresentationHere,holderSubTree);
             }
 
-            if(apontador->getRight())
+            holderSubTree = apontador->getRight(); //Pex tip cascate applied!
+            if(holderSubTree)
             {
                 //qDebug()<<"Right node, it isn't Nullpointer. Going by right...";
-                recursiveTransverseStringGen(preOrderTreeLikeStringHere,apontador->getRight());
+                recursiveTransverseRepresentationGen(preOrderTreeRepresentationHere,holderSubTree);
             }
         }
     }
@@ -58,14 +60,15 @@ void HuffTree::countingNodesHelper(qint64 &nNodes, Huffnode *apontador, bool tog
     if(apontador)
     {
         if(apontador->isLeaf())
-        {
             nNodes++;
-        }
+
         else
         {
-            if(toggleJustLeafsOrAny) nNodes++;
-            countingNodesHelper(nNodes,apontador->getLeft(),toggleJustLeafsOrAny);
-            countingNodesHelper(nNodes,apontador->getRight(),toggleJustLeafsOrAny);
+            if(toggleJustLeafsOrAny)
+                nNodes++;
+
+            countingNodesHelper(nNodes, apontador->getLeft(), toggleJustLeafsOrAny);
+            countingNodesHelper(nNodes, apontador->getRight(), toggleJustLeafsOrAny);
         }
     }
 }
@@ -77,13 +80,13 @@ bool HuffTree::recursiveTransverseToRetrieve(QFile *&storageFile)
     {
         if(m_current->isLeaf())
         {
-            qDebug() << "it's leaf...";
+            //qDebug() << "it's leaf...";
             if(m_current->getFrequency() == 1)
             {
-                QString data = "";
-                data += m_current->getCharacter();
-                qDebug()<<"Its leaf, jesus |" << "it's content:    "<<data;
-                storageFile->write(data.toUtf8(),data.size());
+                QByteArray data = QByteArray();
+                data.insert(0,m_current->getCharacter());
+                qDebug()<< "it's content:    "<<data.toHex();
+                storageFile->write(data,data.size());
                 this->toRoot();
                 return true;
             }
@@ -96,7 +99,7 @@ bool HuffTree::recursiveTransverseToRetrieve(QFile *&storageFile)
         }
         else
         {
-            qDebug()<<"non-leaf reach, ok trying move again...";
+            //qDebug()<<"non-leaf reach, ok trying move again...";
             return true;
         }
     }
@@ -115,14 +118,15 @@ HuffTree::HuffTree()
     m_root = NULL;
     m_current = NULL;
     m_size = 0;
-    m_treePreOrderTransversed = new QString();
-    m_hash = new QHash<uchar,QBitArray>();
+    m_treePreOrderTransversed = QByteArray();
+    m_hash = QHash<uchar,QString>();
+    m_vector = QVector<QString>();
 }
 
 HuffTree::~HuffTree()
 {
-    delete m_treePreOrderTransversed;
-    delete m_hash;
+    m_treePreOrderTransversed.clear();
+    m_hash.clear();
 }
 
 void HuffTree::setCurrent(Huffnode *current)
@@ -132,8 +136,10 @@ void HuffTree::setCurrent(Huffnode *current)
 
 void HuffTree::setRoot(Huffnode *root)
 {
-    if(!m_root) m_root = m_current = root;
-    else m_root = root;
+    if(!m_root)
+        m_root = m_current = root;
+    else
+        m_root = root;
 }
 
 void HuffTree::setTreeSize(quint64 &size)
@@ -141,24 +147,25 @@ void HuffTree::setTreeSize(quint64 &size)
     m_size = size;
 }
 
-void HuffTree::setPreOrderTransversedString(QString *string)
+void HuffTree::setPreOrderTransversedRepresentation(QByteArray &representation)
 {
-    delete m_treePreOrderTransversed;
-    m_treePreOrderTransversed = string;
-    m_size = string->size();
+    if(m_treePreOrderTransversed.operator !=(representation)){
+        m_treePreOrderTransversed.clear();
+        m_treePreOrderTransversed = representation;
+        m_size = representation.size();
+    }
 }
 
-void HuffTree::setTemp(const QString &string)
+void HuffTree::setHash(QHash<uchar, QString> &hash)
 {
-    m_treePreOrderTransversed->clear();
-    m_treePreOrderTransversed->append(string);
-    m_size = m_treePreOrderTransversed->size();
-}
-
-void HuffTree::setHash(QHash<uchar, QBitArray> *hash)
-{
-    delete m_hash;
+    m_hash.clear();
     m_hash = hash;
+}
+
+void HuffTree::setVector(QVector<QString> &vector)
+{
+    m_vector.clear();
+    m_vector = vector;
 }
 
 Huffnode *HuffTree::getRoot() const
@@ -176,37 +183,38 @@ quint64 HuffTree::getTreeSize() const
     return m_size;
 }
 
-QString *HuffTree::getTransversedTreeString() const
+QByteArray HuffTree::getTransversedTreeRepresentation() const
 {
     return m_treePreOrderTransversed;
 }
 
-QHash<uchar, QBitArray> *HuffTree::getHash() const
+QHash<uchar, QString> HuffTree::getHash() const
 {
     return m_hash;
 }
 
-void HuffTree::transverseToPreOrderStringGen()
+QVector<QString> HuffTree::getVector() const
 {
-    if(m_treePreOrderTransversed->isEmpty())
-    {
-        this->recursiveTransverseStringGen(*m_treePreOrderTransversed,m_root);
-    }
-    else
-    {
-        m_treePreOrderTransversed->clear();
-        this->recursiveTransverseStringGen(*m_treePreOrderTransversed,m_root);
-    }
+    return m_vector;
+}
+
+void HuffTree::transverseToPreOrderRepresentationGen()
+{
+    QByteArray nwRepresentation = QByteArray();
+    this->recursiveTransverseRepresentationGen(nwRepresentation,m_root);
+    this->setPreOrderTransversedRepresentation(nwRepresentation);
 }
 
 void HuffTree::toLeft()
 {
-    if(m_current) m_current = m_current->getLeft();
+    if(m_current)
+        m_current = m_current->getLeft();
 }
 
 void HuffTree::toRight()
 {
-    if(m_current) m_current = m_current->getRight();
+    if(m_current)
+        m_current = m_current->getRight();
 }
 
 void HuffTree::toRoot()
@@ -216,14 +224,18 @@ void HuffTree::toRoot()
 
 bool HuffTree::retriveDataByTransversed(bool zeroIsLeftOneIsRight, QFile *&repOriginalData)
 {
-    qDebug() << "retrieve caller w: " << zeroIsLeftOneIsRight;
+    //qDebug() << "retrieve caller w: " << zeroIsLeftOneIsRight;
 
-    if(!m_root->isLeaf())
+    if(m_root->isLeaf())
+        this->toRoot();
+
+    else
     {
-        if(zeroIsLeftOneIsRight) this->toRight();
-        else this->toLeft();
+        if(zeroIsLeftOneIsRight)
+            this->toRight();
+        else
+            this->toLeft();
     }
-    else this->toRoot();
 
     return this->recursiveTransverseToRetrieve(repOriginalData);
 }

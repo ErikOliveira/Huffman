@@ -15,6 +15,7 @@ class BitArray
     void helperOperatorAndToSetBitArray(const QBitArray &bitArray);
     void helperAddBitToEnd(bool value);
     void helperAddBitLoop(const QBitArray &bitArray);
+    void helperAddBitStringLoop(const QString &string);
     void helperAddReversedBitLoop(const QBitArray &bitArray);
 public:
 
@@ -45,6 +46,7 @@ public:
         void clear();
         void completeMe(int nBitsToAdd);
         void addBitArray(const QBitArray &addThisIntoIt);
+        void addBitArray(const QString &addThisLikeBitArray);
         void addReversedBitArray(const QBitArray &addThisFromBackToFrontBytePerByteLike);
 
         //Logical (Soft) actions - It's abstract something that should be physical
@@ -60,12 +62,15 @@ public:
         bool pseudoBeginValue();
         bool pseudoEmpty();
         qint64 pseudoSize();
+        qint64 theresNBitsAvailable();
 
     //Tools - Uses external types, perform data turnment or do other tasks
     void makeItListOfChunks(QList<QBitArray> &list);
     QBitArray breakOneChunk();
     QBitArray turnByteToChunkOfBits(const QByteArray &chunkOfData);
+    bool turnByteToChunkOfBits(QByteArray &chunkOfData);
     QByteArray turnChunkOfBitsToByte(const QBitArray &chunkOfBits);
+    QByteArray turnChunkOfBitsToByte();
 };
 
 #endif // BITARRAY_H

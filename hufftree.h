@@ -2,6 +2,7 @@
 #define HUFFTREE_H
 #include <QDebug>
 #include <QHash>
+#include <QVector>
 #include <QBitArray>
 #include <QFile>
 #include "huffnode.h"
@@ -13,11 +14,12 @@ class HuffTree
     Huffnode *m_current;
 
     quint64 m_size;
-    QString *m_treePreOrderTransversed;
+    QByteArray m_treePreOrderTransversed;
 
-    QHash<uchar,QBitArray> *m_hash;
+    QHash<uchar,QString> m_hash;
+    QVector<QString> m_vector;
 
-    void recursiveTransverseStringGen(QString &preOrderTreeLikeStringHere, Huffnode *apontador);
+    void recursiveTransverseRepresentationGen(QByteArray &preOrderTreeRepresentationHere, Huffnode *apontador); //Edit signature/prototype
     void countingNodesHelper(qint64& nNodes, Huffnode* apontador,bool toggleJustLeafsOrAny);
     bool recursiveTransverseToRetrieve(QFile*& storageFile);
 public:
@@ -31,19 +33,20 @@ public:
         void setCurrent(Huffnode *current);
         void setRoot(Huffnode *root);
         void setTreeSize(quint64 &size);
-        void setPreOrderTransversedString(QString *string);
-        void setTemp(const QString &string);
-        void setHash(QHash<uchar,QBitArray> *hash);
+        void setPreOrderTransversedRepresentation(QByteArray &representation); //Edit signature/prototype
+        void setHash(QHash<uchar, QString> &hash);
+        void setVector(QVector<QString> &vector);
 
         //Getters
         Huffnode *getRoot() const;
         Huffnode *getCurrent();
         quint64 getTreeSize() const;
-        QString *getTransversedTreeString() const;
-        QHash<uchar, QBitArray> *getHash() const;
+        QByteArray getTransversedTreeRepresentation() const; //Edit signature/prototype
+        QHash<uchar, QString> getHash() const;
+        QVector<QString> getVector() const;
 
     //Miscellaneous
-    void transverseToPreOrderStringGen();
+    void transverseToPreOrderRepresentationGen(); //Edit signature/prototype
 
     void toLeft();
     void toRight();
