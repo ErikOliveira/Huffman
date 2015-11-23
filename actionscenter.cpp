@@ -288,20 +288,9 @@ bool ActionsCenter::decompRetrieveOriginalData(QByteArray customOutName, QFile *
     Q_ASSERT_X(userCompFile->open(QIODevice::ReadOnly), Q_FUNC_INFO, "Sorry, I can't open your provided huffman file. Check you typing and try again later, Huffman is dead (x_X)");
 
     BitArray *helper = new BitArray(1024*30);
-//    qDebug() << "pseudo pos:    " << qPrintable(QString::number(treeSize+filenameSize+4))
-//             << "available bytes:   " << qPrintable(QString::number(userCompFile->bytesAvailable()));
-
     bool flag = userCompFile->seek(3+treeSize+filenameSize);
-    qDebug() << "flag:  " << flag;
-
-//    tree->trasverseToPreOrderRepresentationGen();
-//    qDebug()<< "tree: "<< *tree->getTrasversedTreeRepresentation();
 
     QByteArray holderData = userCompFile->readAll();
-    //qDebug() << "byteArray: " << holderData.toHex();
-    //qDebug()<<"retrieved bits" << helper->getReadableBitArray();
-    qDebug()<<"trash size:\t" << QString::number(trash) << "\npseudosize:\t" << QString::number(helper->pseudoSize()) << "\n\n";
-
     QByteArray holderOriginalData = QByteArray();
 
     while(!holderData.isEmpty() & flag)
