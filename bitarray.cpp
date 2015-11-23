@@ -43,13 +43,11 @@ void BitArray::helperAddBitToEnd(bool value)
         qint64 mBitArraySize = m_bitArray->size();
         if((m_pseudoEndIndex+1) < mBitArraySize)
         {
-            //qDebug()<<"Add in process";
             m_bitArray->setBit(m_pseudoEndIndex,value);
             ++m_pseudoEndIndex;
         }
         else
         {
-            //qDebug()<<"Resize was required. --Smart resize--";
             m_bitArray->resize((mBitArraySize+8));
             this->helperAddBitToEnd(value);
         }
@@ -58,10 +56,9 @@ void BitArray::helperAddBitToEnd(bool value)
 
 void BitArray::helperAddBitLoop(const QBitArray &bitArray)
 {
-    qint64 size = bitArray.size(); //Pex tip cascate applied!
+    qint64 size = bitArray.size(); //Pex tip cascade applied!
     for(qint64 i = 0; i<size; ++i)
     {
-        //if(!i) qDebug()<<"adding loop...";
         this->helperAddBitToEnd(bitArray.at(i));
     }
 }
@@ -81,12 +78,11 @@ void BitArray::helperAddReversedBitLoop(const QBitArray &bitArray)
 
     for(qint64 i=1; i<=nBytes; ++i)
     {
-        qint64 upperBoundary = ((i*8)-1); //Pex tip cascate applied!
+        qint64 upperBoundary = ((i*8)-1); //Pex tip cascade applied!
         qint64 lowerBoundary = ((i*8)-8);
 
         for(qint64 j= upperBoundary; j>= lowerBoundary; --j)
         {
-            //if(!(i-1)) qDebug()<<"reversed adding loop...";
             this->helperAddBitToEnd(bitArray.at(j));
         }
     }
@@ -105,7 +101,6 @@ BitArray::~BitArray()
 
 BitArray::BitArray(qint64 maxSize)
 {
-    //qDebug()<<"custom constructor...";
     this->helperConstructor();
     m_bitArray->resize(maxSize);
     this->setMaximumSize(maxSize);
@@ -128,7 +123,7 @@ void BitArray::setPseudoEndIndex(qint64 endIndex)
 
 void BitArray::setBitArray(const QBitArray &setThisToIt)
 {
-    qint64 bitToSetSize = setThisToIt.size(); //Pex tip cascate applied!
+    qint64 bitToSetSize = setThisToIt.size(); //Pex tip cascade applied!
 
     if(m_maximumSize > 0)
     {
@@ -172,7 +167,6 @@ qint64 BitArray::getMaximumSize() const
 
 QString BitArray::getReadableBitArray()
 {
-    //this->state("getReadableBitArray");
     QString readable = "";
     for(qint64 i=m_pseudoBeginIndex; i<m_pseudoEndIndex; ++i)
         readable.append(((m_bitArray->at(i))?'1':'0'));
@@ -215,19 +209,15 @@ void BitArray::completeMe(int nBitsToAdd)
 
 void BitArray::addBitArray(const QBitArray &addThisIntoIt)
 {
-    //qDebug()<<"AddBit method...";
     if(m_maximumSize > 0)
     {
-        //qDebug()<<"add-mode 1";
-        qint64 bitArrayToAddSize = addThisIntoIt.size(); //Pex tip cascate applied!
+        qint64 bitArrayToAddSize = addThisIntoIt.size(); //Pex tip cascade applied!
         if(m_pseudoEndIndex+bitArrayToAddSize < m_maximumSize)
         {
-            //qDebug()<<"add-mode 1.1 - the bitarray to add is less than maximum size";
             this->helperAddBitLoop(addThisIntoIt);
         }
         else
         {
-            //qDebug()<<"add-mode 1.2 - the bitarray to add is great or equal maximum size";
             qint64 holderEnd = m_pseudoEndIndex;
             this->completeMe((m_maximumSize - (m_pseudoEndIndex+bitArrayToAddSize)));
             m_pseudoEndIndex = holderEnd;
@@ -236,7 +226,6 @@ void BitArray::addBitArray(const QBitArray &addThisIntoIt)
     }
     else
     {
-        //qDebug()<<"add-mode 2 - unlimited binArray";
         this->helperAddBitLoop(addThisIntoIt);
     }
 }
@@ -245,16 +234,13 @@ void BitArray::addBitArray(const QString &addThisLikeBitArray)
 {
     if(m_maximumSize > 0)
     {
-        //qDebug()<<"add-mode 1";
-        qint64 stringToAddSize = addThisLikeBitArray.size(); //Pex tip cascate applied!
+        qint64 stringToAddSize = addThisLikeBitArray.size(); //Pex tip cascade applied!
         if(m_pseudoEndIndex+stringToAddSize < m_maximumSize)
         {
-            //qDebug()<<"add-mode 1.1 - the bitarray to add is less than maximum size";
             this->helperAddBitStringLoop(addThisLikeBitArray);
         }
         else
         {
-            //qDebug()<<"add-mode 1.2 - the bitarray to add is great or equal maximum size";
             qint64 holderEnd = m_pseudoEndIndex;
             this->completeMe(((m_pseudoEndIndex+stringToAddSize) - m_maximumSize));
             m_pseudoEndIndex = holderEnd;
@@ -263,7 +249,6 @@ void BitArray::addBitArray(const QString &addThisLikeBitArray)
     }
     else
     {
-        //qDebug()<<"add-mode 2 - unlimited binArray";
         this->helperAddBitStringLoop(addThisLikeBitArray);
     }
 }
@@ -272,7 +257,7 @@ void BitArray::addReversedBitArray(const QBitArray &addThisFromBackToFrontBytePe
 {
     if(m_maximumSize > 0)
     {
-        qint64 bitArrayToAddSize = addThisFromBackToFrontBytePerByteLike.size(); //Pex tip cascate applied!
+        qint64 bitArrayToAddSize = addThisFromBackToFrontBytePerByteLike.size(); //Pex tip cascade applied!
         if((m_pseudoEndIndex-1)+bitArrayToAddSize < m_maximumSize)
         {
             this->helperAddReversedBitLoop(addThisFromBackToFrontBytePerByteLike);
@@ -337,19 +322,15 @@ void BitArray::pseudoRemoveFromBegin()
     {
         if(m_maximumSize > 0)
         {
-            //qDebug() << "rmv-mode 1";
             if(((m_pseudoBeginIndex+1) < m_pseudoEndIndex) & ((m_pseudoBeginIndex+1) < m_maximumSize))
             {
-                //qDebug() << "pseudo Remotion!";
                 if(m_pseudoBeginIndex != m_pseudoEndIndex)
                 {
                     ++m_pseudoBeginIndex;
-                    //qDebug() << "pseudo Remotion mode 1.1";
                 }
                 else
                 {
                     this->erase();
-                    //qDebug() << "pseudo Remotion mode 1.2";
                 }
             }
         }
@@ -398,11 +379,9 @@ void BitArray::makeItListOfChunks(QList<QBitArray> &list)
 {
     if(list.empty())
     {
-        //this->state("1.1 - makeItListOfChunks");
         int pseudoTrash = (8-(this->pseudoSize()%8));
         if(pseudoTrash == 8) pseudoTrash=0;
         if(pseudoTrash) this->completeMe(pseudoTrash);
-        //this->state("1.2 - makeItListOfChunks");
 
         while(!this->pseudoEmpty()&this->theresOneChunkAvaliable())
             list.append(this->breakOneChunk());
@@ -414,19 +393,16 @@ void BitArray::makeItListOfChunks(QList<QBitArray> &list)
 
 QBitArray BitArray::breakOneChunk()
 {
-    //this->state("breakOneChunk");
     if(this->theresOneChunkAvaliable())
     {
-        //qDebug()<< "Chunk breaking...";
         QBitArray chunk(8,false);
-        qint64 upperBoundary = m_pseudoBeginIndex+8; //Pex tip cascate applied!
+        qint64 upperBoundary = m_pseudoBeginIndex+8; //Pex tip cascade applied!
         for(qint64 i =m_pseudoBeginIndex; i<upperBoundary; ++i)
         {
             chunk.setBit((i-m_pseudoBeginIndex),m_bitArray->at(i));
         }
 
         m_pseudoBeginIndex+=8;
-        //qDebug()<<"breaked!";
         return chunk;
     }
     else
@@ -438,7 +414,7 @@ QBitArray BitArray::breakOneChunk()
 
 QBitArray BitArray::turnByteToChunkOfBits(const QByteArray &chunkOfData)
 {
-    qint64 byteChunkSize = chunkOfData.size(); //Pex tip cascate applied!
+    qint64 byteChunkSize = chunkOfData.size(); //Pex tip cascade applied!
     QBitArray chunkOfBitsFromByte(byteChunkSize*8,false);
 
     for(qint64 i=0; i<byteChunkSize; ++i)
@@ -456,15 +432,44 @@ bool BitArray::turnByteToChunkOfBits(QByteArray &chunkOfData)
 {
     qint64 numBitstoWrite = this->theresNBitsAvailable();
 
-    if(numBitstoWrite >= 8)
+    if(numBitstoWrite > 7)
     {
         qint64 byteArraySize = chunkOfData.size();
-        if(numBitstoWrite >= byteArraySize)
+        if(numBitstoWrite >= (byteArraySize*8))
         {
-            for(quint64 i=0; i<byteArraySize; ++i)
+            for(qint64 i=0; i<byteArraySize; ++i)
             {
+                quint8 byteNum = chunkOfData[(int (i))];
+
+                this->helperAddBitToEnd((byteNum & (0x80)));
+                this->helperAddBitToEnd((byteNum & (0x40)));
+                this->helperAddBitToEnd((byteNum & (0x20)));
+                this->helperAddBitToEnd((byteNum & (0x10)));
+                this->helperAddBitToEnd((byteNum & (0x08)));
+                this->helperAddBitToEnd((byteNum & (0x04)));
+                this->helperAddBitToEnd((byteNum & (0x02)));
+                this->helperAddBitToEnd((byteNum & (0x01)));
 
             }
+
+            chunkOfData.remove(0,byteArraySize);
+        }
+        else
+        {
+            qint64 availableBitsLikeByte = numBitstoWrite/8;
+            for(qint64 i=0; i<availableBitsLikeByte; ++i)
+            {
+                quint8 byteNum = chunkOfData[(int (i))];
+                this->helperAddBitToEnd((byteNum & (0x80)));
+                this->helperAddBitToEnd((byteNum & (0x40)));
+                this->helperAddBitToEnd((byteNum & (0x20)));
+                this->helperAddBitToEnd((byteNum & (0x10)));
+                this->helperAddBitToEnd((byteNum & (0x08)));
+                this->helperAddBitToEnd((byteNum & (0x04)));
+                this->helperAddBitToEnd((byteNum & (0x02)));
+                this->helperAddBitToEnd((byteNum & (0x01)));
+            }
+            chunkOfData.remove(0,availableBitsLikeByte);
         }
         return true;
     }
@@ -477,12 +482,12 @@ QByteArray BitArray::turnChunkOfBitsToByte(const QBitArray &chunkOfBits)
 {
     if(chunkOfBits.size() > 7)
     {   
-        qint64 bitChunkSize = chunkOfBits.size(); //Pex tip cascate applied!
+        qint64 bitChunkSize = chunkOfBits.size(); //Pex tip cascade applied!
         QByteArray byteFromChunkOfBits = QByteArray(bitChunkSize/8,'\0');
 
         for(qint64 i=0; i<bitChunkSize; ++i)
         {
-            byteFromChunkOfBits[(int (i/8))] = ((byteFromChunkOfBits.at((i/8)) | ((chunkOfBits.testBit(i)?1:0)<<(i%8))));
+            byteFromChunkOfBits[(int (i/8))] = ((byteFromChunkOfBits.at((i/8)) | ((chunkOfBits.testBit(i)?1:0)<<(7-(i%8)))));
         }
 
         return byteFromChunkOfBits;
@@ -499,13 +504,12 @@ QByteArray BitArray::turnChunkOfBitsToByte()
     if(this->theresOneChunkAvaliable())
     {
         QByteArray bytes = QByteArray(this->pseudoSize()/8,'\0');
-        qint64 numByteSize = bytes.size(); //Pex tip cascate applied!
-        qDebug() << "bytes size:    " << QString::number(numByteSize);
+        qint64 numByteSize = bytes.size(); //Pex tip cascade applied!
 
         qint64 loopControl = 0;
         for(; ((loopControl/8)< numByteSize); ++loopControl)
         {
-            bytes[(int (loopControl/8))] = (bytes.at((loopControl/8)) | ((m_bitArray->testBit(m_pseudoBeginIndex+loopControl)?1:0)<<((loopControl%8))));
+            bytes[(int (loopControl/8))] = (bytes.at((loopControl/8)) | ((m_bitArray->testBit(m_pseudoBeginIndex+loopControl)?1:0)<<(7-(loopControl%8))));
         }
 
         m_pseudoBeginIndex+= loopControl;

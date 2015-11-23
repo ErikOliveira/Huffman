@@ -4,25 +4,27 @@
 #
 #-------------------------------------------------
 
-QT       += core
-
-QT       -= gui
-
-TARGET = Huffman
-CONFIG   += console
-CONFIG   -= app_bundle
-
 TEMPLATE = app
 
+QT += qml quick
+
+HEADERS += actionscenter.h \
+    bitarray.h \
+    huffnode.h \
+    hufftree.h \
+    huffman.h
 
 SOURCES += main.cpp \
     actionscenter.cpp \
     bitarray.cpp \
     huffnode.cpp \
-    hufftree.cpp
+    hufftree.cpp \
+    huffman.cpp
 
-HEADERS += \
-    actionscenter.h \
-    bitarray.h \
-    huffnode.h \
-    hufftree.h
+RESOURCES += qml.qrc
+
+# Additional import path used to resolve QML modules in Qt Creator's code model
+QML_IMPORT_PATH =
+
+# Default rules for deployment.
+include(deployment.pri)

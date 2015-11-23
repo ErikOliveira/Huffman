@@ -82,43 +82,27 @@ bool Huffnode::isLeaf()
 //Implementation of makeItLeaf method
 void Huffnode::makeItLeaf()
 {
-    //qDebug()<< "It's is leaf?" << this->isLeaf();
     if(!this->isLeaf())
     {
         try
         {
-            //qDebug() << "Lft delete act";
             delete m_left;
-
-            //qDebug() << "try to pointer lft to null";
             m_left = NULL;
-
-            //qDebug() << "All done with left";
         }
         catch(...)
         {
-            /*qDebug() << "delete left fails..."
-                     << "\ntry to pointer lft to null";/*a*/
             m_left = NULL;
         }
+
 
         try
         {
-            //qDebug() << "Rgt delete act";
             delete m_right;
-
-            //qDebug()<< "try to pointer rgt to null";
             m_right = NULL;
-
-            //qDebug() << "all done";
         }
         catch(...)
         {
-            /*qDebug() << "delete right fails..."
-                        <<"\ntry to pointer rgt to null";/*a*/
             m_right = NULL;
         }
     }
-    else
-        qDebug() << "it's already leaf nothing to do!";
 }
